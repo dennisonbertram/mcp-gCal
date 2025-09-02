@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "chrono-node": "^2.8.4",
     "google-auth-library": "^9.15.0",
     "googleapis": "^144.0.0",
     "winston": "^3.15.0"

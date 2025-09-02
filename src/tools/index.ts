@@ -5,6 +5,7 @@
 import { google } from 'googleapis';
 import { AuthManager } from '../auth/AuthManager.js';
 import { createLogger } from '../utils/logger.js';
+import { registerAdvancedTools } from './advancedTools.js';
 import type { CalendarEvent, Calendar } from '../types/calendar.js';
 
 const logger = createLogger('tools');
@@ -808,6 +809,12 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
       }
     }
   });
+
+  // Register advanced tools
+  const advancedTools = registerAdvancedTools(authManager);
+  for (const [name, tool] of advancedTools.entries()) {
+    tools.set(name, tool);
+  }
 
   return tools;
 }
