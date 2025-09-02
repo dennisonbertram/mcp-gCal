@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.test
+
+# Credentials and tokens - NEVER COMMIT THESE
+client_secret*.json
+service-account*.json
+*.token
+tokens.json
+credentials.json
+
+# Token storage directories
+.gdrive-mcp-tokens/
+.gcal-mcp-tokens/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+api-test-responses/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock

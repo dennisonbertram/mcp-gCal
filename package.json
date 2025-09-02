@@ -1,0 +1,56 @@
+{
+  "name": "@modelcontextprotocol/gcalendar-mcp",
+  "version": "1.0.0",
+  "description": "Google Calendar integration for Model Context Protocol",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "google-calendar",
+    "calendar",
+    "ai",
+    "llm"
+  ],
+  "homepage": "https://github.com/modelcontextprotocol/gcalendar-mcp",
+  "bugs": {
+    "url": "https://github.com/modelcontextprotocol/gcalendar-mcp/issues"
+  },
+  "license": "MIT",
+  "author": "Model Context Protocol Team",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "gcalendar-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "setup": "npm run build && node get-calendar-credentials.js",
+    "test-api": "npm run build && node test-calendar-access.js",
+    "clear-tokens": "rm -rf ~/.gcal-mcp-tokens && echo 'Calendar tokens cleared'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "google-auth-library": "^9.15.0",
+    "googleapis": "^144.0.0",
+    "winston": "^3.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
