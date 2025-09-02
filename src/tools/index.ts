@@ -953,9 +953,8 @@ export async function handleToolCall(
   
   try {
     const result = await tool.handler(params);
-    return {
-      toolResult: result
-    };
+    // The handler already returns the proper MCP format { content: [...] }
+    return result;
   } catch (error) {
     logger.error(`Error executing tool ${toolName}`, { error });
     throw error;
