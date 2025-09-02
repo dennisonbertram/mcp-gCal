@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { google } from 'googleapis';
 import { 
   registerTools,
   handleToolCall,
@@ -11,10 +12,40 @@ import {
 } from '../src/tools/index.js';
 import { AuthManager } from '../src/auth/AuthManager.js';
 
+// Mock calendar API instance
+const mockCalendarApi = {
+  calendarList: {
+    list: vi.fn()
+  },
+  calendars: {
+    get: vi.fn(),
+    insert: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn()
+  },
+  events: {
+    list: vi.fn(),
+    get: vi.fn(),
+    insert: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn()
+  }
+};
+
+// Mock googleapis module
+vi.mock('googleapis', () => ({
+  google: {
+    calendar: vi.fn(() => mockCalendarApi)
+  }
+}));
+
 describe('Tool Handler System', () => {
   let authManager: AuthManager;
 
   beforeEach(() => {
+    // Reset all mocks
+    vi.clearAllMocks();
+    
     // Create auth manager instance with config
     const config = {
       method: 'oauth2' as const,
@@ -39,8 +70,14 @@ describe('Tool Handler System', () => {
       const tools = registerTools(authManager);
       const toolNames = Array.from(tools.keys());
       
-      // Check for essential tools
+      // Check for essential calendar management tools
       expect(toolNames).toContain('list-calendars');
+      expect(toolNames).toContain('get-calendar');
+      expect(toolNames).toContain('create-calendar');
+      expect(toolNames).toContain('update-calendar');
+      expect(toolNames).toContain('delete-calendar');
+      
+      // Check for essential event management tools
       expect(toolNames).toContain('list-events');
       expect(toolNames).toContain('create-event');
       expect(toolNames).toContain('get-event');
@@ -79,12 +116,17 @@ describe('Tool Handler System', () => {
       const tools = registerTools(authManager);
       
       // Mock the auth client method
-      const mockAuthClient = {
-        request: vi.fn().mockResolvedValue({
-          data: { calendars: [] }
-        })
-      };
+      const mockAuthClient = {};
       vi.spyOn(authManager, 'authenticate').mockResolvedValue(mockAuthClient as any);
+      
+      // Mock the Google Calendar API response
+      mockCalendarApi.calendarList.list.mockResolvedValue({
+        data: {
+          kind: 'calendar#calendarList',
+          etag: 'test-etag',
+          items: []
+        }
+      } as any);
       
       const result = await handleToolCall(
         tools,
@@ -94,18 +136,25 @@ describe('Tool Handler System', () => {
       
       expect(result).toBeDefined();
       expect(result.toolResult).toBeDefined();
+      expect(result.toolResult.calendars).toEqual([]);
     });
 
     it('should handle tool calls with parameters', async () => {
       const tools = registerTools(authManager);
       
       // Mock the auth client
-      const mockAuthClient = {
-        request: vi.fn().mockResolvedValue({
-          data: { events: [] }
-        })
-      };
+      const mockAuthClient = {};
       vi.spyOn(authManager, 'authenticate').mockResolvedValue(mockAuthClient as any);
+      
+      // Mock the Google Calendar API response
+      mockCalendarApi.events.list.mockResolvedValue({
+        data: {
+          kind: 'calendar#events',
+          etag: 'test-etag',
+          summary: 'Primary',
+          items: []
+        }
+      } as any);
       
       const result = await handleToolCall(
         tools,
@@ -119,6 +168,7 @@ describe('Tool Handler System', () => {
       
       expect(result).toBeDefined();
       expect(result.toolResult).toBeDefined();
+      expect(result.toolResult.events).toEqual([]);
     });
 
     it('should handle invalid tool names', async () => {
@@ -137,6 +187,18 @@ describe('Tool Handler System', () => {
           // Missing required calendarId and eventId
         })
       ).rejects.toThrow(/required/i);
+      
+      await expect(
+        handleToolCall(tools, 'get-calendar', {
+          // Missing required calendarId
+        })
+      ).rejects.toThrow(/required/i);
+      
+      await expect(
+        handleToolCall(tools, 'create-calendar', {
+          // Missing required summary
+        })
+      ).rejects.toThrow(/required/i);
     });
 
     it('should handle tool execution errors gracefully', async () => {
@@ -150,6 +212,67 @@ describe('Tool Handler System', () => {
       await expect(
         handleToolCall(tools, 'list-calendars', {})
       ).rejects.toThrow('Authentication failed');
+    });
+
+    it('should handle calendar creation with real API integration', async () => {
+      const tools = registerTools(authManager);
+      
+      // Mock auth client
+      const mockAuthClient = {};
+      vi.spyOn(authManager, 'authenticate').mockResolvedValue(mockAuthClient as any);
+      
+      // Mock Google Calendar API response for calendar creation
+      mockCalendarApi.calendars.insert.mockResolvedValue({
+        data: {
+          kind: 'calendar#calendar',
+          etag: 'test-etag',
+          id: 'test-calendar-id@group.calendar.google.com',
+          summary: 'Test Calendar',
+          description: 'A test calendar',
+          timeZone: 'America/New_York'
+        }
+      } as any);
+      
+      const result = await handleToolCall(
+        tools,
+        'create-calendar',
+        {
+          summary: 'Test Calendar',
+          description: 'A test calendar',
+          timeZone: 'America/New_York'
+        }
+      );
+      
+      expect(result).toBeDefined();
+      expect(result.toolResult).toBeDefined();
+      expect(result.toolResult.summary).toBe('Test Calendar');
+      expect(result.toolResult.id).toBe('test-calendar-id@group.calendar.google.com');
+      
+      // Verify the API was called with correct parameters
+      expect(mockCalendarApi.calendars.insert).toHaveBeenCalledWith({
+        requestBody: {
+          summary: 'Test Calendar',
+          description: 'A test calendar',
+          timeZone: 'America/New_York'
+        }
+      });
+    });
+
+    it('should handle API errors with proper error messages', async () => {
+      const tools = registerTools(authManager);
+      
+      // Mock auth client
+      const mockAuthClient = {};
+      vi.spyOn(authManager, 'authenticate').mockResolvedValue(mockAuthClient as any);
+      
+      // Mock Google Calendar API to throw a 404 error
+      const notFoundError = new Error('Calendar not found');
+      (notFoundError as any).code = 404;
+      mockCalendarApi.calendars.get.mockRejectedValue(notFoundError);
+      
+      await expect(
+        handleToolCall(tools, 'get-calendar', { calendarId: 'non-existent-calendar' })
+      ).rejects.toThrow('Calendar not found: non-existent-calendar');
     });
   });
 
