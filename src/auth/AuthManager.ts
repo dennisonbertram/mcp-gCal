@@ -49,8 +49,11 @@ export class AuthManager {
   constructor(config: AuthConfig, tenantId?: string) {
     this.config = config;
     
-    // Create tenant-specific token storage with encryption enabled for security
-    this.tokenStorage = new TokenStorage(config.credentialsDir, tenantId, true);
+    // Use global storage directory for out-of-band authentication (Gmail-MCP pattern)
+    // This ensures consistency with the standalone auth command
+    const globalDir = config.credentialsDir || '~/.gcal-mcp';
+    // Disable encryption for MCP compatibility (following gDrive pattern)
+    this.tokenStorage = new TokenStorage(globalDir, tenantId, false);
     
     this.initialize();
   }

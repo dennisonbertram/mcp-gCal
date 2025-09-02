@@ -31,13 +31,12 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
+    "auth": "npm run build && node dist/index.js auth",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "setup": "npm run build && node get-calendar-credentials.js",
-    "test-api": "npm run build && node test-calendar-access.js",
-    "clear-tokens": "rm -rf ~/.gcal-mcp-tokens && echo 'Calendar tokens cleared'"
+    "clear-auth": "rm -rf ~/.gcal-mcp && echo 'Google Calendar authentication cleared'"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

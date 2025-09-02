@@ -30,13 +30,23 @@ export class TokenStorage {
       data = this.encrypt(data);
     }
     
-    const tokenPath = path.join(this.storageDir, 'tokens.json');
+    // Use 'credentials.json' for Gmail-MCP compatibility
+    const tokenPath = path.join(this.storageDir, 'credentials.json');
     await fs.writeFile(tokenPath, data, { mode: 0o600 });
   }
   
   async loadTokens(): Promise<Credentials | null> {
     try {
-      const tokenPath = path.join(this.storageDir, 'tokens.json');
+      // Try new credentials.json first (Gmail-MCP pattern)
+      let tokenPath = path.join(this.storageDir, 'credentials.json');
+      
+      try {
+        await fs.access(tokenPath);
+      } catch {
+        // Fall back to old tokens.json for backward compatibility
+        tokenPath = path.join(this.storageDir, 'tokens.json');
+      }
+      
       let data = await fs.readFile(tokenPath, 'utf-8');
       
       if (this.encryptionKey) {
@@ -51,10 +61,23 @@ export class TokenStorage {
   
   async clearTokens(): Promise<void> {
     try {
-      const tokenPath = path.join(this.storageDir, 'tokens.json');
-      await fs.unlink(tokenPath);
+      // Try to clear both old and new token files
+      const credentialsPath = path.join(this.storageDir, 'credentials.json');
+      const tokensPath = path.join(this.storageDir, 'tokens.json');
+      
+      try {
+        await fs.unlink(credentialsPath);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+      
+      try {
+        await fs.unlink(tokensPath);
+      } catch {
+        // Ignore if file doesn't exist
+      }
     } catch (error) {
-      // Ignore if file doesn't exist
+      // Ignore errors
     }
   }
   
