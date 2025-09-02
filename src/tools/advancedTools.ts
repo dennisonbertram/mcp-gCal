@@ -123,7 +123,29 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
           }
         }
         
-        return results;
+        // Format response as readable text
+        let summary = `**Free/Busy Query Results**\n`;
+        summary += `Time Range: ${results.timeMin} to ${results.timeMax}\n\n`;
+        
+        for (const cal of results.calendars) {
+          summary += `📅 **${cal.calendarId}**\n`;
+          if (cal.busy && cal.busy.length > 0) {
+            summary += `   🔴 Busy periods:\n`;
+            for (const busy of cal.busy) {
+              summary += `      - ${busy.start} to ${busy.end}\n`;
+            }
+          } else {
+            summary += `   ✅ Available during entire time range\n`;
+          }
+          if (cal.errors && cal.errors.length > 0) {
+            summary += `   ⚠️ Errors: ${cal.errors.map((e: any) => e.reason).join(', ')}\n`;
+          }
+          summary += `\n`;
+        }
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to query free/busy information', { error: error.message });
         
@@ -289,15 +311,25 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         
         logger.info(`Found ${availableSlots.length} available time slots`);
         
+        // Format response as readable text
+        let summary = `**Available Time Suggestions**\n\n`;
+        summary += `Looking for ${params.duration} minute slots in: ${params.searchRange}\n\n`;
+        
+        if (availableSlots.length > 0) {
+          summary += `Found ${availableSlots.length} available time slots:\n\n`;
+          for (let i = 0; i < Math.min(availableSlots.length, params.maxSuggestions || 5); i++) {
+            const slot = availableSlots[i];
+            const startTime = new Date(slot.start).toLocaleString();
+            const endTime = new Date(slot.end).toLocaleString();
+            summary += `${i + 1}. **${startTime}** - ${endTime}\n`;
+          }
+        } else {
+          summary += `No available time slots found for the specified criteria.\n`;
+          summary += `\nChecked ${calendarIds.length} calendars and found ${busyTimes.length} busy periods.\n`;
+        }
+        
         return {
-          searchRange: {
-            start: rangeStart.dateTime,
-            end: rangeEnd.dateTime
-          },
-          duration: params.duration,
-          calendarsChecked: calendarIds,
-          availableSlots,
-          busyTimesFound: busyTimes.length
+          content: [{ type: "text", text: summary }]
         };
       } catch (error: any) {
         logger.error('Failed to find available time', { error: error.message });
@@ -367,14 +399,21 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         
         logger.info(`Successfully created event via quickAdd: ${response.data.summary} (${response.data.id})`);
         
-        // Add parsed information to response
-        const result: any = response.data;
-        result.parsedFrom = params.text;
-        if (timezone) {
-          result.detectedTimezone = timezone;
-        }
+        // Format response as readable text
+        const event = response.data;
+        const summary = `✅ **Event Created from Natural Language!**\n\n` +
+          `**${event.summary || 'Quick Event'}**\n` +
+          `- Original text: "${params.text}"\n` +
+          `- ID: ${event.id}\n` +
+          `- Time: ${event.start?.dateTime || event.start?.date} - ${event.end?.dateTime || event.end?.date}\n` +
+          (event.location ? `- Location: ${event.location}\n` : '') +
+          (event.description ? `- Description: ${event.description}\n` : '') +
+          `- Calendar: ${params.calendarId}\n` +
+          (timezone ? `- Detected timezone: ${timezone}\n` : '');
         
-        return result;
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to quick add event', { error: error.message });
         
@@ -436,21 +475,30 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         
         logger.info(`Successfully retrieved ${response.data.items?.length || 0} ACL rules for calendar ${params.calendarId}`);
         
-        // Process and format the response
-        const results = {
-          kind: response.data.kind,
-          etag: response.data.etag,
-          calendarId: params.calendarId,
-          rules: response.data.items?.map(rule => ({
-            id: rule.id,
-            etag: rule.etag,
-            role: rule.role,
-            scope: rule.scope,
-            kind: rule.kind
-          })) || []
-        };
+        // Format response as readable text
+        const acls = response.data.items || [];
+        let summary = `**Calendar Access Control (Sharing) Permissions**\n\n`;
+        summary += `Calendar: ${params.calendarId}\n\n`;
         
-        return results;
+        if (acls.length > 0) {
+          summary += `Found ${acls.length} access rules:\n\n`;
+          for (const acl of acls) {
+            const scopeText = acl.scope?.type === 'default' ? 'Default (Public)' : 
+                             acl.scope?.type === 'user' ? `User: ${acl.scope.value}` :
+                             acl.scope?.type === 'group' ? `Group: ${acl.scope.value}` :
+                             acl.scope?.type === 'domain' ? `Domain: ${acl.scope.value}` :
+                             'Unknown scope';
+            summary += `👥 **${scopeText}**\n`;
+            summary += `   Role: ${acl.role}\n`;
+            summary += `   ID: ${acl.id}\n\n`;
+          }
+        } else {
+          summary += `No sharing permissions found (private calendar).\n`;
+        }
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to list calendar ACL', { error: error.message });
         
@@ -518,7 +566,7 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         const calendar = google.calendar({ version: 'v3', auth });
         
         // Prepare ACL rule
-        const rule: any = {
+        const aclRule: any = {
           role: params.role,
           scope: {
             type: params.scopeType
@@ -526,13 +574,13 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         };
         
         if (params.scopeValue) {
-          rule.scope.value = params.scopeValue;
+          aclRule.scope.value = params.scopeValue;
         }
         
         // Prepare API parameters
         const apiParams: any = {
           calendarId: params.calendarId,
-          requestBody: rule
+          requestBody: aclRule
         };
         
         if (params.sendNotifications !== undefined) {
@@ -548,7 +596,23 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
           scopeValue: params.scopeValue
         });
         
-        return response.data;
+        const rule = response.data;
+        const scopeText = rule.scope?.type === 'default' ? 'Default (Public)' : 
+                         rule.scope?.type === 'user' ? `User: ${rule.scope.value}` :
+                         rule.scope?.type === 'group' ? `Group: ${rule.scope.value}` :
+                         rule.scope?.type === 'domain' ? `Domain: ${rule.scope.value}` :
+                         'Unknown scope';
+        
+        const summary = `✅ **Calendar Sharing Permission Created!**\n\n` +
+          `**${scopeText}**\n` +
+          `- Role: ${rule.role}\n` +
+          `- Calendar: ${params.calendarId}\n` +
+          `- Rule ID: ${rule.id}\n` +
+          `- Created: ${new Date().toISOString()}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to create calendar ACL', { error: error.message });
         
@@ -637,7 +701,23 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
           newRole: params.role
         });
         
-        return response.data;
+        const rule = response.data;
+        const scopeText = rule.scope?.type === 'default' ? 'Default (Public)' : 
+                         rule.scope?.type === 'user' ? `User: ${rule.scope.value}` :
+                         rule.scope?.type === 'group' ? `Group: ${rule.scope.value}` :
+                         rule.scope?.type === 'domain' ? `Domain: ${rule.scope.value}` :
+                         'Unknown scope';
+        
+        const summary = `✅ **Calendar Sharing Permission Updated!**\n\n` +
+          `**${scopeText}**\n` +
+          `- New Role: ${rule.role}\n` +
+          `- Calendar: ${params.calendarId}\n` +
+          `- Rule ID: ${rule.id}\n` +
+          `- Updated: ${new Date().toISOString()}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to update calendar ACL', { error: error.message });
         
@@ -705,8 +785,10 @@ export function registerAdvancedTools(authManager: AuthManager): Map<string, Too
         logger.info(`Successfully deleted ACL rule ${params.ruleId} from calendar ${params.calendarId}`);
         
         return {
-          success: true,
-          message: `ACL rule ${params.ruleId} removed from calendar ${params.calendarId}`
+          content: [{ 
+            type: "text", 
+            text: `✅ **Calendar Sharing Permission Removed!**\n\nACL rule ${params.ruleId} has been permanently removed from calendar ${params.calendarId}.`
+          }]
         };
       } catch (error: any) {
         logger.error('Failed to delete calendar ACL', { error: error.message });

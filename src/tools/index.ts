@@ -64,11 +64,19 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully retrieved ${response.data.items?.length || 0} calendars`);
         
+        const calendars = response.data.items || [];
+        const summary = `Found ${calendars.length} calendars:\n\n` +
+          calendars.map(cal => 
+            `📅 **${cal.summary}**\n` +
+            `   ID: ${cal.id}\n` +
+            `   Access: ${cal.accessRole}\n` +
+            `   TimeZone: ${cal.timeZone || 'Not specified'}\n` +
+            (cal.description ? `   Description: ${cal.description}\n` : '') +
+            `   Primary: ${cal.primary ? 'Yes' : 'No'}\n`
+          ).join('\n');
+        
         return {
-          kind: response.data.kind,
-          etag: response.data.etag,
-          nextSyncToken: response.data.nextSyncToken,
-          calendars: response.data.items || []
+          content: [{ type: "text", text: summary }]
         };
       } catch (error: any) {
         logger.error('Failed to list calendars', { error: error.message });
@@ -118,7 +126,18 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully retrieved calendar: ${response.data.summary}`);
         
-        return response.data;
+        const cal = response.data;
+        const summary = `📅 **${cal.summary}**\n\n` +
+          `**Details:**\n` +
+          `- ID: ${cal.id}\n` +
+          `- Description: ${cal.description || 'No description'}\n` +
+          `- TimeZone: ${cal.timeZone || 'Not specified'}\n` +
+          `- Location: ${cal.location || 'Not specified'}\n` +
+          `- Created: ${cal.etag ? new Date(parseInt(cal.etag.replace(/"/g, '')) / 1000).toISOString() : 'Unknown'}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to get calendar', { error: error.message });
         
@@ -190,7 +209,17 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully created calendar: ${response.data.summary} (${response.data.id})`);
         
-        return response.data;
+        const cal = response.data;
+        const summary = `✅ **Calendar Created Successfully!**\n\n` +
+          `**${cal.summary}**\n` +
+          `- ID: ${cal.id}\n` +
+          `- Description: ${cal.description || 'No description'}\n` +
+          `- TimeZone: ${cal.timeZone || 'Default timezone'}\n` +
+          `- Created: ${new Date().toISOString()}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to create calendar', { error: error.message });
         
@@ -267,7 +296,17 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully updated calendar: ${response.data.summary} (${response.data.id})`);
         
-        return response.data;
+        const cal = response.data;
+        const summary = `✅ **Calendar Updated Successfully!**\n\n` +
+          `**${cal.summary}**\n` +
+          `- ID: ${cal.id}\n` +
+          `- Description: ${cal.description || 'No description'}\n` +
+          `- TimeZone: ${cal.timeZone || 'Default timezone'}\n` +
+          `- Updated: ${new Date().toISOString()}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to update calendar', { error: error.message });
         
@@ -322,9 +361,11 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully deleted calendar: ${params.calendarId}`);
         
-        return { 
-          success: true, 
-          message: `Calendar ${params.calendarId} deleted successfully` 
+        return {
+          content: [{ 
+            type: "text", 
+            text: `✅ **Calendar Deleted Successfully!**\n\nCalendar ${params.calendarId} has been permanently deleted.`
+          }]
         };
       } catch (error: any) {
         logger.error('Failed to delete calendar', { error: error.message });
@@ -430,18 +471,24 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully retrieved ${response.data.items?.length || 0} events from calendar ${params.calendarId}`);
         
+        const events = response.data.items || [];
+        const eventList = events.length > 0 
+          ? events.map(event => {
+              const startTime = event.start?.dateTime || event.start?.date || 'No start time';
+              const endTime = event.end?.dateTime || event.end?.date || 'No end time';
+              return `🗺 **${event.summary || 'Untitled Event'}**\n` +
+                     `   Time: ${startTime} - ${endTime}\n` +
+                     `   ID: ${event.id}\n` +
+                     (event.location ? `   Location: ${event.location}\n` : '') +
+                     (event.description ? `   Description: ${event.description}\n` : '') +
+                     `   Status: ${event.status || 'confirmed'}\n`;
+            }).join('\n')
+          : 'No events found.';
+        
+        const summary = `Found ${events.length} events in calendar:\n\n${eventList}`;
+        
         return {
-          kind: response.data.kind,
-          etag: response.data.etag,
-          summary: response.data.summary,
-          description: response.data.description,
-          updated: response.data.updated,
-          timeZone: response.data.timeZone,
-          accessRole: response.data.accessRole,
-          defaultReminders: response.data.defaultReminders,
-          nextSyncToken: response.data.nextSyncToken,
-          nextPageToken: response.data.nextPageToken,
-          events: response.data.items || []
+          content: [{ type: "text", text: summary }]
         };
       } catch (error: any) {
         logger.error('Failed to list events', { error: error.message, calendarId: params.calendarId });
@@ -552,7 +599,21 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully created event: ${response.data.summary} (${response.data.id})`);
         
-        return response.data;
+        const event = response.data;
+        const startTime = event.start?.dateTime || event.start?.date || 'No start time';
+        const endTime = event.end?.dateTime || event.end?.date || 'No end time';
+        const summary = `✅ **Event Created Successfully!**\n\n` +
+          `**${event.summary || 'Untitled Event'}**\n` +
+          `- ID: ${event.id}\n` +
+          `- Time: ${startTime} - ${endTime}\n` +
+          (event.location ? `- Location: ${event.location}\n` : '') +
+          (event.description ? `- Description: ${event.description}\n` : '') +
+          `- Status: ${event.status || 'confirmed'}\n` +
+          `- Calendar: ${params.calendarId}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to create event', { error: error.message, calendarId: params.calendarId });
         
@@ -608,7 +669,22 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully retrieved event: ${response.data.summary} (${response.data.id})`);
         
-        return response.data;
+        const event = response.data;
+        const startTime = event.start?.dateTime || event.start?.date || 'No start time';
+        const endTime = event.end?.dateTime || event.end?.date || 'No end time';
+        const summary = `🗺 **${event.summary || 'Untitled Event'}**\n\n` +
+          `**Event Details:**\n` +
+          `- ID: ${event.id}\n` +
+          `- Time: ${startTime} - ${endTime}\n` +
+          (event.location ? `- Location: ${event.location}\n` : '') +
+          (event.description ? `- Description: ${event.description}\n` : '') +
+          `- Status: ${event.status || 'confirmed'}\n` +
+          `- Created: ${event.created || 'Unknown'}\n` +
+          `- Updated: ${event.updated || 'Unknown'}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to get event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });
         
@@ -720,7 +796,21 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully updated event: ${response.data.summary} (${response.data.id})`);
         
-        return response.data;
+        const event = response.data;
+        const startTime = event.start?.dateTime || event.start?.date || 'No start time';
+        const endTime = event.end?.dateTime || event.end?.date || 'No end time';
+        const summary = `✅ **Event Updated Successfully!**\n\n` +
+          `**${event.summary || 'Untitled Event'}**\n` +
+          `- ID: ${event.id}\n` +
+          `- Time: ${startTime} - ${endTime}\n` +
+          (event.location ? `- Location: ${event.location}\n` : '') +
+          (event.description ? `- Description: ${event.description}\n` : '') +
+          `- Status: ${event.status || 'confirmed'}\n` +
+          `- Updated: ${new Date().toISOString()}\n`;
+        
+        return {
+          content: [{ type: "text", text: summary }]
+        };
       } catch (error: any) {
         logger.error('Failed to update event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });
         
@@ -788,9 +878,11 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         
         logger.info(`Successfully deleted event: ${params.eventId} from calendar ${params.calendarId}`);
         
-        return { 
-          success: true, 
-          message: `Event ${params.eventId} deleted successfully from calendar ${params.calendarId}` 
+        return {
+          content: [{ 
+            type: "text", 
+            text: `✅ **Event Deleted Successfully!**\n\nEvent ${params.eventId} has been permanently deleted from calendar ${params.calendarId}.`
+          }]
         };
       } catch (error: any) {
         logger.error('Failed to delete event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });

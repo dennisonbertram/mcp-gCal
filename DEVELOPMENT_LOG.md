@@ -5,6 +5,44 @@ Comprehensive Google Calendar integration for Model Context Protocol (MCP) with 
 
 ## Implementation Progress
 
+### Authentication Migration (2025-09-02)
+**CRITICAL**: OAuth2 Out-of-Band (OOB) Flow Deprecation
+
+#### Issue Discovered
+- Google deprecated `urn:ietf:wg:oauth:2.0:oob` redirect URI
+- Error: "The out-of-band (OOB) flow has been blocked in order to keep users secure"
+- Authentication was failing with Error 400: invalid_request
+
+#### Solution Implemented
+**Context7 Research**: Used Context7 to analyze Google Auth Library documentation and discovered the migration path.
+
+**Changes Made**:
+1. **Updated redirect URI**: `urn:ietf:wg:oauth:2.0:oob` → `http://localhost:3000/oauth2callback`
+2. **Fixed auth-cli.ts**: Replaced ES module incompatible `require.main === module` with `import.meta.url === file://${process.argv[1]}`
+3. **Updated OAuth2Client**: Uses localhost callback server on port 3000
+4. **Google Cloud Console**: Added `http://localhost:3000/oauth2callback` to authorized redirect URIs
+5. **Credentials storage**: Maintained `~/.gcal-mcp/credentials.json` pattern for Gmail-MCP compatibility
+
+#### Authentication Flow (Final)
+1. **Pre-authentication**: Server requires valid credentials before starting
+2. **OAuth2 Setup**: Loads client credentials from `~/.gcal-mcp/gcp-oauth.keys.json`
+3. **Browser Launch**: Automatically opens Google OAuth consent page
+4. **Callback Server**: Temporary server on localhost:3000 captures authorization code
+5. **Token Exchange**: Exchanges code for access/refresh tokens
+6. **Secure Storage**: Saves tokens to `~/.gcal-mcp/credentials.json`
+7. **Verification**: Tests API access by listing calendars
+
+#### Testing Results
+- ✅ Authentication successful with new "Claude CEO" project
+- ✅ Found 4 calendars (Holidays US/Argentina/Dominican Republic, DAOcember)
+- ✅ Created test event via MCP protocol: "Test the MCP server works - tomorrow at 3pm"
+- ✅ Server fully functional with all 17 tools
+
+#### Alignment Note
+**IMPORTANT**: This localhost callback pattern should be adopted by mcp-gDrive project to ensure consistent authentication across MCP servers. The OOB deprecation affects all Google OAuth2 implementations.
+
+## Implementation Progress
+
 ### Phase 1: Foundation (Complete)
 - **AuthManager**: Full OAuth2 authentication with Google Calendar API
 - **Basic Calendar Tools** (5 tools):

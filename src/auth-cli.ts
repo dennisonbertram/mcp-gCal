@@ -13,6 +13,7 @@ import * as os from 'os';
 import * as http from 'http';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as readline from 'readline';
 
 const execAsync = promisify(exec);
 
@@ -20,7 +21,7 @@ const execAsync = promisify(exec);
 const GLOBAL_CONFIG_DIR = path.join(os.homedir(), '.gcal-mcp');
 const OAUTH_KEYS_FILE = 'gcp-oauth.keys.json';
 const CREDENTIALS_FILE = 'credentials.json';
-const REDIRECT_PORT = 3001;
+const REDIRECT_PORT = 3000;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/oauth2callback`;
 
 // Google Calendar API scopes
@@ -206,6 +207,21 @@ class AuthenticationCLI {
     
     // Verify authentication
     await this.verifyAuthentication();
+  }
+
+  private async getAuthorizationCodeFromUser(): Promise<string> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    return new Promise((resolve) => {
+      console.log('After granting access, Google will show you an authorization code.');
+      rl.question('Please enter the authorization code: ', (code) => {
+        rl.close();
+        resolve(code.trim());
+      });
+    });
   }
 
   private async startCallbackServer(): Promise<void> {
