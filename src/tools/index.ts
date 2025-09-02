@@ -2,6 +2,7 @@
  * MCP Tool handler and routing system for Google Calendar
  */
 
+import { google } from 'googleapis';
 import { AuthManager } from '../auth/AuthManager.js';
 import { createLogger } from '../utils/logger.js';
 import type { CalendarEvent, Calendar } from '../types/calendar.js';
@@ -48,9 +49,297 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
     },
     handler: async (params) => {
       logger.info('Listing calendars', params);
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { calendars: [] };
+      
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.calendarList.list({
+          showDeleted: params.showDeleted || false,
+          showHidden: params.showHidden || false,
+          maxResults: 250  // Google Calendar API default
+        });
+        
+        logger.info(`Successfully retrieved ${response.data.items?.length || 0} calendars`);
+        
+        return {
+          kind: response.data.kind,
+          etag: response.data.etag,
+          nextSyncToken: response.data.nextSyncToken,
+          calendars: response.data.items || []
+        };
+      } catch (error: any) {
+        logger.error('Failed to list calendars', { error: error.message });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to access calendars');
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to list calendars: ${error.message}`);
+        }
+      }
+    }
+  });
+
+  // Get calendar details tool
+  tools.set('get-calendar', {
+    name: 'get-calendar',
+    description: 'Get details of a specific calendar',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        calendarId: {
+          type: 'string',
+          description: 'Calendar identifier (use "primary" for main calendar)'
+        }
+      },
+      required: ['calendarId']
+    },
+    handler: async (params) => {
+      logger.info('Getting calendar details', params);
+      
+      if (!params.calendarId) {
+        throw new Error('calendarId is required');
+      }
+      
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.calendars.get({
+          calendarId: params.calendarId
+        });
+        
+        logger.info(`Successfully retrieved calendar: ${response.data.summary}`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to get calendar', { error: error.message });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to access calendar');
+        } else if (error.code === 404) {
+          throw new Error(`Calendar not found: ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to get calendar: ${error.message}`);
+        }
+      }
+    }
+  });
+
+  // Create calendar tool
+  tools.set('create-calendar', {
+    name: 'create-calendar',
+    description: 'Create a new calendar',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'Calendar title/name'
+        },
+        description: {
+          type: 'string',
+          description: 'Calendar description'
+        },
+        timeZone: {
+          type: 'string',
+          description: 'Calendar timezone (e.g., America/New_York)'
+        }
+      },
+      required: ['summary']
+    },
+    handler: async (params) => {
+      logger.info('Creating calendar', params);
+      
+      if (!params.summary) {
+        throw new Error('summary is required');
+      }
+      
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare calendar data
+        const calendarData: any = {
+          summary: params.summary
+        };
+        
+        if (params.description) {
+          calendarData.description = params.description;
+        }
+        
+        if (params.timeZone) {
+          calendarData.timeZone = params.timeZone;
+        }
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.calendars.insert({
+          requestBody: calendarData
+        });
+        
+        logger.info(`Successfully created calendar: ${response.data.summary} (${response.data.id})`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to create calendar', { error: error.message });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to create calendar');
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to create calendar: ${error.message}`);
+        }
+      }
+    }
+  });
+
+  // Update calendar tool
+  tools.set('update-calendar', {
+    name: 'update-calendar',
+    description: 'Update an existing calendar',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        calendarId: {
+          type: 'string',
+          description: 'Calendar identifier'
+        },
+        summary: {
+          type: 'string',
+          description: 'Calendar title/name'
+        },
+        description: {
+          type: 'string',
+          description: 'Calendar description'
+        },
+        timeZone: {
+          type: 'string',
+          description: 'Calendar timezone (e.g., America/New_York)'
+        }
+      },
+      required: ['calendarId']
+    },
+    handler: async (params) => {
+      logger.info('Updating calendar', params);
+      
+      if (!params.calendarId) {
+        throw new Error('calendarId is required');
+      }
+      
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare calendar data (only include fields that are provided)
+        const calendarData: any = {};
+        
+        if (params.summary) {
+          calendarData.summary = params.summary;
+        }
+        
+        if (params.description !== undefined) {
+          calendarData.description = params.description;
+        }
+        
+        if (params.timeZone) {
+          calendarData.timeZone = params.timeZone;
+        }
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.calendars.patch({
+          calendarId: params.calendarId,
+          requestBody: calendarData
+        });
+        
+        logger.info(`Successfully updated calendar: ${response.data.summary} (${response.data.id})`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to update calendar', { error: error.message });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to update calendar');
+        } else if (error.code === 404) {
+          throw new Error(`Calendar not found: ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to update calendar: ${error.message}`);
+        }
+      }
+    }
+  });
+
+  // Delete calendar tool
+  tools.set('delete-calendar', {
+    name: 'delete-calendar',
+    description: 'Delete a calendar (cannot delete primary calendar)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        calendarId: {
+          type: 'string',
+          description: 'Calendar identifier (cannot be "primary")'
+        }
+      },
+      required: ['calendarId']
+    },
+    handler: async (params) => {
+      logger.info('Deleting calendar', params);
+      
+      if (!params.calendarId) {
+        throw new Error('calendarId is required');
+      }
+      
+      if (params.calendarId === 'primary') {
+        throw new Error('Cannot delete primary calendar');
+      }
+      
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Make real API call to Google Calendar
+        await calendar.calendars.delete({
+          calendarId: params.calendarId
+        });
+        
+        logger.info(`Successfully deleted calendar: ${params.calendarId}`);
+        
+        return { 
+          success: true, 
+          message: `Calendar ${params.calendarId} deleted successfully` 
+        };
+      } catch (error: any) {
+        logger.error('Failed to delete calendar', { error: error.message });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to delete calendar');
+        } else if (error.code === 404) {
+          throw new Error(`Calendar not found: ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to delete calendar: ${error.message}`);
+        }
+      }
     }
   });
 
@@ -104,9 +393,70 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         throw new Error('calendarId is required');
       }
       
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { events: [] };
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare API parameters
+        const apiParams: any = {
+          calendarId: params.calendarId,
+          singleEvents: params.singleEvents !== undefined ? params.singleEvents : true,
+          orderBy: params.orderBy || 'startTime'
+        };
+        
+        if (params.timeMin) {
+          apiParams.timeMin = params.timeMin;
+        }
+        
+        if (params.timeMax) {
+          apiParams.timeMax = params.timeMax;
+        }
+        
+        if (params.maxResults) {
+          apiParams.maxResults = Math.min(params.maxResults, 2500); // Google Calendar API limit
+        }
+        
+        if (params.q) {
+          apiParams.q = params.q;
+        }
+        
+        if (params.showDeleted) {
+          apiParams.showDeleted = params.showDeleted;
+        }
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.events.list(apiParams);
+        
+        logger.info(`Successfully retrieved ${response.data.items?.length || 0} events from calendar ${params.calendarId}`);
+        
+        return {
+          kind: response.data.kind,
+          etag: response.data.etag,
+          summary: response.data.summary,
+          description: response.data.description,
+          updated: response.data.updated,
+          timeZone: response.data.timeZone,
+          accessRole: response.data.accessRole,
+          defaultReminders: response.data.defaultReminders,
+          nextSyncToken: response.data.nextSyncToken,
+          nextPageToken: response.data.nextPageToken,
+          events: response.data.items || []
+        };
+      } catch (error: any) {
+        logger.error('Failed to list events', { error: error.message, calendarId: params.calendarId });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to access calendar events');
+        } else if (error.code === 404) {
+          throw new Error(`Calendar not found: ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to list events: ${error.message}`);
+        }
+      }
     }
   });
 
@@ -160,9 +510,63 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         throw new Error('calendarId, start, and end are required');
       }
       
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { event: { id: 'placeholder' } };
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare event data
+        const eventData: any = {
+          start: params.start,
+          end: params.end
+        };
+        
+        if (params.summary) {
+          eventData.summary = params.summary;
+        }
+        
+        if (params.description) {
+          eventData.description = params.description;
+        }
+        
+        if (params.location) {
+          eventData.location = params.location;
+        }
+        
+        if (params.attendees) {
+          eventData.attendees = params.attendees;
+        }
+        
+        // Prepare API parameters
+        const apiParams: any = {
+          calendarId: params.calendarId,
+          requestBody: eventData
+        };
+        
+        if (params.sendUpdates) {
+          apiParams.sendUpdates = params.sendUpdates;
+        }
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.events.insert(apiParams);
+        
+        logger.info(`Successfully created event: ${response.data.summary} (${response.data.id})`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to create event', { error: error.message, calendarId: params.calendarId });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to create events in calendar');
+        } else if (error.code === 404) {
+          throw new Error(`Calendar not found: ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to create event: ${error.message}`);
+        }
+      }
     }
   });
 
@@ -191,9 +595,34 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         throw new Error('calendarId and eventId are required');
       }
       
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { event: { id: params.eventId } };
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.events.get({
+          calendarId: params.calendarId,
+          eventId: params.eventId
+        });
+        
+        logger.info(`Successfully retrieved event: ${response.data.summary} (${response.data.id})`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to get event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to access event');
+        } else if (error.code === 404) {
+          throw new Error(`Event not found: ${params.eventId} in calendar ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to get event: ${error.message}`);
+        }
+      }
     }
   });
 
@@ -247,9 +676,65 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         throw new Error('calendarId and eventId are required');
       }
       
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { event: { id: params.eventId } };
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare event data (only include fields that are provided)
+        const eventData: any = {};
+        
+        if (params.summary !== undefined) {
+          eventData.summary = params.summary;
+        }
+        
+        if (params.description !== undefined) {
+          eventData.description = params.description;
+        }
+        
+        if (params.location !== undefined) {
+          eventData.location = params.location;
+        }
+        
+        if (params.start) {
+          eventData.start = params.start;
+        }
+        
+        if (params.end) {
+          eventData.end = params.end;
+        }
+        
+        // Prepare API parameters
+        const apiParams: any = {
+          calendarId: params.calendarId,
+          eventId: params.eventId,
+          requestBody: eventData
+        };
+        
+        if (params.sendUpdates) {
+          apiParams.sendUpdates = params.sendUpdates;
+        }
+        
+        // Make real API call to Google Calendar
+        const response = await calendar.events.patch(apiParams);
+        
+        logger.info(`Successfully updated event: ${response.data.summary} (${response.data.id})`);
+        
+        return response.data;
+      } catch (error: any) {
+        logger.error('Failed to update event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to update event');
+        } else if (error.code === 404) {
+          throw new Error(`Event not found: ${params.eventId} in calendar ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to update event: ${error.message}`);
+        }
+      }
     }
   });
 
@@ -283,9 +768,44 @@ export function registerTools(authManager: AuthManager): ToolRegistry {
         throw new Error('calendarId and eventId are required');
       }
       
-      const auth = await authManager.authenticate();
-      // Placeholder for actual implementation
-      return { success: true };
+      try {
+        const auth = await authManager.authenticate();
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        // Prepare API parameters
+        const apiParams: any = {
+          calendarId: params.calendarId,
+          eventId: params.eventId
+        };
+        
+        if (params.sendUpdates) {
+          apiParams.sendUpdates = params.sendUpdates;
+        }
+        
+        // Make real API call to Google Calendar
+        await calendar.events.delete(apiParams);
+        
+        logger.info(`Successfully deleted event: ${params.eventId} from calendar ${params.calendarId}`);
+        
+        return { 
+          success: true, 
+          message: `Event ${params.eventId} deleted successfully from calendar ${params.calendarId}` 
+        };
+      } catch (error: any) {
+        logger.error('Failed to delete event', { error: error.message, calendarId: params.calendarId, eventId: params.eventId });
+        
+        if (error.code === 401) {
+          throw new Error('Authentication failed - please re-authenticate');
+        } else if (error.code === 403) {
+          throw new Error('Insufficient permissions to delete event');
+        } else if (error.code === 404) {
+          throw new Error(`Event not found: ${params.eventId} in calendar ${params.calendarId}`);
+        } else if (error.code >= 500) {
+          throw new Error('Google Calendar service temporarily unavailable');
+        } else {
+          throw new Error(`Failed to delete event: ${error.message}`);
+        }
+      }
     }
   });
 

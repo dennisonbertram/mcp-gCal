@@ -49,8 +49,8 @@ export class AuthManager {
   constructor(config: AuthConfig, tenantId?: string) {
     this.config = config;
     
-    // Create tenant-specific token storage with encryption disabled for MCP compatibility
-    this.tokenStorage = new TokenStorage(config.credentialsDir, tenantId, false);
+    // Create tenant-specific token storage with encryption enabled for security
+    this.tokenStorage = new TokenStorage(config.credentialsDir, tenantId, true);
     
     this.initialize();
   }
