@@ -32,13 +32,13 @@ If you need to use the custom client credentials:
 1. Add redirect URI to Google Cloud Console:
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Navigate to APIs & Services > Credentials
-   - Edit the OAuth 2.0 Client ID: `1018702655180-vdatf55cgidumlq75go3j4oh31ga2jl1.apps.googleusercontent.com`
+   - Edit your OAuth 2.0 Client ID
    - Add `http://localhost:3001/oauth2callback` to Authorized redirect URIs
    - Save changes
 
 2. Run the OAuth flow:
    ```bash
-   node get-token.js
+   npm run auth
    ```
 
 3. Follow the browser prompts to authorize

@@ -14,8 +14,8 @@ This document contains actual API response formats for all endpoints that will b
 **Response Format:**
 ```json
 {
-  "issued_to": "1018702655180-vdatf55cgidumlq75go3j4oh31ga2jl1.apps.googleusercontent.com",
-  "audience": "1018702655180-vdatf55cgidumlq75go3j4oh31ga2jl1.apps.googleusercontent.com",
+  "issued_to": "[CLIENT_ID]",
+  "audience": "[CLIENT_ID]",
   "scope": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly",
   "expires_in": 3595,
   "access_type": "offline"
