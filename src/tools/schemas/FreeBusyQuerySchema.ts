@@ -22,7 +22,7 @@ export const FreeBusyQuerySchema = z.object({
   groupExpansionMax: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe('Maximum number of calendar IDs in group expansion'),
 });

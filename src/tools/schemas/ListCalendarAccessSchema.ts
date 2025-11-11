@@ -14,7 +14,7 @@ export const ListCalendarAccessSchema = z.object({
   maxResults: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe('Maximum number of rules to return'),
 });

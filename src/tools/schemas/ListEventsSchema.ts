@@ -18,7 +18,7 @@ export const ListEventsSchema = z.object({
   maxResults: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .max(2500)
     .optional()
     .describe('Maximum number of events to return'),

@@ -18,7 +18,7 @@ export const FindAvailableTimeSchema = z.object({
   duration: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .describe('Meeting duration in minutes'),
   searchRange: z
     .string()
@@ -31,7 +31,7 @@ export const FindAvailableTimeSchema = z.object({
   maxSuggestions: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe('Maximum number of time slots to suggest (default: 5)'),
 });
