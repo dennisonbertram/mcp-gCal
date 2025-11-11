@@ -10,7 +10,7 @@ A Model Context Protocol (MCP) server that provides comprehensive Google Calenda
 - **Calendar Sharing & ACL** - Manage calendar access control and permissions
 - **Smart Scheduling** - Find optimal meeting times across attendees
 - **Batch Operations** - Efficiently handle multiple calendar operations
-- **Secure Token Storage** - OAuth2 tokens stored securely in `~/.gcal-mcp/`
+- **Secure Token Storage** - OAuth2 tokens stored securely in `~/.config/mcp-gcal/`
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ Before installation, you'll need:
    - Click "Create Credentials" > "OAuth client ID"
    - Choose "Desktop app" as the application type
    - Download the credentials JSON file
-5. Save the credentials file as `~/.gcal-mcp/gcp-oauth.keys.json`
+5. Save the credentials file as `~/.config/mcp-gcal/credentials.json`
 
 ## Installation
 
@@ -86,7 +86,7 @@ gcalendar-mcp auth
 This will:
 1. Open your browser for Google account authentication
 2. Request calendar permissions
-3. Store the access token securely in `~/.gcal-mcp/`
+3. Store the access token securely in `~/.config/mcp-gcal/`
 
 **Note:** Authentication is required before first use. The browser will open automatically for Google account login.
 
@@ -137,7 +137,7 @@ OAuth2 tokens are stored securely and automatically refreshed. To reset authenti
 
 ```bash
 # Clear stored tokens
-rm -rf ~/.gcal-mcp
+rm -rf ~/.config/mcp-gcal
 
 # Re-authenticate
 gcalendar-mcp auth
@@ -150,7 +150,7 @@ gcalendar-mcp auth
 If you encounter authentication errors:
 1. Ensure your OAuth2 credentials are for a "Desktop application"
 2. Verify the Google Calendar API is enabled in your project
-3. Clear tokens and re-authenticate: `rm -rf ~/.gcal-mcp && gcalendar-mcp auth`
+3. Clear tokens and re-authenticate: `rm -rf ~/.config/mcp-gcal && gcalendar-mcp auth`
 
 ### Permission Errors
 
@@ -168,7 +168,7 @@ For connection problems:
 
 ## Security
 
-- OAuth2 tokens are stored locally in `~/.gcal-mcp/` with restricted permissions
+- OAuth2 tokens are stored locally in `~/.config/mcp-gcal/` with restricted permissions
 - Credentials are never transmitted except to Google's OAuth2 servers
 - All calendar operations use Google's secure API endpoints
 - Token refresh is handled automatically and securely

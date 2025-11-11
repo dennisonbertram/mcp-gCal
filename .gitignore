@@ -21,9 +21,9 @@ service-account*.json
 tokens.json
 credentials.json
 
-# Token storage directories
+# Token storage directories (use ~/.config/mcp-gcal/)
+.config/mcp-gcal/
 .gdrive-mcp-tokens/
-.gcal-mcp-tokens/
 
 # OS files
 .DS_Store

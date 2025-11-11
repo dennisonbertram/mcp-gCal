@@ -58,7 +58,7 @@ describe('Server Entry Point', () => {
       
       expect(config.method).toBe('oauth2');
       expect(config.redirectUri).toBe('http://localhost:3001/oauth2callback');
-      expect(config.credentialsDir).toContain('.gcal-mcp');
+      expect(config.credentialsDir).toContain('.config/mcp-gcal');
     });
 
     it('should validate required configuration', () => {

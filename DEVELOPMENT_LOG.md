@@ -21,15 +21,15 @@ Comprehensive Google Calendar integration for Model Context Protocol (MCP) with 
 2. **Fixed auth-cli.ts**: Replaced ES module incompatible `require.main === module` with `import.meta.url === file://${process.argv[1]}`
 3. **Updated OAuth2Client**: Uses localhost callback server on port 3000
 4. **Google Cloud Console**: Added `http://localhost:3000/oauth2callback` to authorized redirect URIs
-5. **Credentials storage**: Maintained `~/.gcal-mcp/credentials.json` pattern for Gmail-MCP compatibility
+5. **Credentials storage**: Standardized to `~/.config/mcp-gcal/` following XDG base directory convention
 
 #### Authentication Flow (Final)
 1. **Pre-authentication**: Server requires valid credentials before starting
-2. **OAuth2 Setup**: Loads client credentials from `~/.gcal-mcp/gcp-oauth.keys.json`
+2. **OAuth2 Setup**: Loads client credentials from `~/.config/mcp-gcal/credentials.json`
 3. **Browser Launch**: Automatically opens Google OAuth consent page
 4. **Callback Server**: Temporary server on localhost:3000 captures authorization code
 5. **Token Exchange**: Exchanges code for access/refresh tokens
-6. **Secure Storage**: Saves tokens to `~/.gcal-mcp/credentials.json`
+6. **Secure Storage**: Saves tokens to `~/.config/mcp-gcal/token.json`
 7. **Verification**: Tests API access by listing calendars
 
 #### Testing Results
