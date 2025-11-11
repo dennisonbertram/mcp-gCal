@@ -42,36 +42,27 @@ export default class ListCalendarAccessTool extends MCPTool<typeof ListCalendarA
         `Successfully retrieved ${response.data.items?.length || 0} ACL rules for calendar ${input.calendarId}`
       );
 
-      const acls = response.data.items || [];
-      let summary = `**Calendar Access Control (Sharing) Permissions**\n\n`;
-      summary += `Calendar: ${input.calendarId}\n\n`;
-
-      if (acls.length > 0) {
-        summary += `Found ${acls.length} access rules:\n\n`;
-        for (const acl of acls) {
-          const scopeText =
-            acl.scope?.type === 'default'
-              ? 'Default (Public)'
-              : acl.scope?.type === 'user'
-                ? `User: ${acl.scope.value}`
-                : acl.scope?.type === 'group'
-                  ? `Group: ${acl.scope.value}`
-                  : acl.scope?.type === 'domain'
-                    ? `Domain: ${acl.scope.value}`
-                    : 'Unknown scope';
-          summary += `👥 **${scopeText}**\n`;
-          summary += `   Role: ${acl.role}\n`;
-          summary += `   ID: ${acl.id}\n\n`;
-        }
-      } else {
-        summary += `No sharing permissions found (private calendar).\n`;
-      }
+      const acls = (response.data.items || []).map((acl) => ({
+        ruleId: acl.id,
+        role: acl.role,
+        scopeType: acl.scope?.type,
+        scopeValue: acl.scope?.value,
+      }));
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendarId: input.calendarId,
+        accessRules: acls,
+        count: acls.length,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

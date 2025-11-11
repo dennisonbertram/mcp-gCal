@@ -51,30 +51,23 @@ export default class UpdateCalendarAccessTool extends MCPTool<typeof UpdateCalen
       });
 
       const rule = response.data;
-      const scopeText =
-        rule.scope?.type === 'default'
-          ? 'Default (Public)'
-          : rule.scope?.type === 'user'
-            ? `User: ${rule.scope.value}`
-            : rule.scope?.type === 'group'
-              ? `Group: ${rule.scope.value}`
-              : rule.scope?.type === 'domain'
-                ? `Domain: ${rule.scope.value}`
-                : 'Unknown scope';
-
-      const summary =
-        `✅ **Calendar Sharing Permission Updated!**\n\n` +
-        `**${scopeText}**\n` +
-        `- New Role: ${rule.role}\n` +
-        `- Calendar: ${input.calendarId}\n` +
-        `- Rule ID: ${rule.id}\n` +
-        `- Updated: ${new Date().toISOString()}\n`;
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        ruleId: rule.id,
+        role: rule.role,
+        scopeType: rule.scope?.type,
+        scopeValue: rule.scope?.value,
+        calendarId: input.calendarId,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

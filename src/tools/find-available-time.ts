@@ -133,29 +133,22 @@ export default class FindAvailableTimeTool extends MCPTool<typeof FindAvailableT
 
       logger.info(`Found ${availableSlots.length} available time slots`);
 
-      // Format response as readable text
-      let summary = `**Available Time Suggestions**\n\n`;
-      summary += `Looking for ${input.duration} minute slots in: ${input.searchRange}\n\n`;
-
-      if (availableSlots.length > 0) {
-        summary += `Found ${availableSlots.length} available time slots:\n\n`;
-        for (let i = 0; i < Math.min(availableSlots.length, input.maxSuggestions || 5); i++) {
-          const slot = availableSlots[i];
-          if (!slot || !slot.start || !slot.end) continue;
-          const startTime = new Date(slot.start).toLocaleString();
-          const endTime = new Date(slot.end).toLocaleString();
-          summary += `${i + 1}. **${startTime}** - ${endTime}\n`;
-        }
-      } else {
-        summary += `No available time slots found for the specified criteria.\n`;
-        summary += `\nChecked ${calendarIds.length} calendars and found ${busyTimes.length} busy periods.\n`;
-      }
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        availableSlots: availableSlots.slice(0, maxSuggestions),
+        duration: input.duration,
+        searchRange: input.searchRange,
+        calendarsChecked: calendarIds.length,
+        busyPeriodsFound: busyTimes.length,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

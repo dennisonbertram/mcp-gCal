@@ -92,10 +92,18 @@ export default class ListEventsTool extends MCPTool<typeof ListEventsSchema> {
       const summary = `Found ${events.length} events in calendar:\n\n${eventList}`;
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        count: events.length,
+        events: summary,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

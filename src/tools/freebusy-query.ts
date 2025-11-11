@@ -70,15 +70,11 @@ export default class FreeBusyQueryTool extends MCPTool<typeof FreeBusyQuerySchem
         timeRange: { timeMin, timeMax },
       });
 
-      const results: any = {
-        timeMin: response.data.timeMin,
-        timeMax: response.data.timeMax,
-        calendars: [],
-      };
+      const calendars: any[] = [];
 
       if (response.data.calendars) {
         for (const [calendarId, calendarData] of Object.entries(response.data.calendars)) {
-          results.calendars.push({
+          calendars.push({
             calendarId,
             busy: (calendarData as any).busy || [],
             errors: (calendarData as any).errors,
@@ -86,30 +82,20 @@ export default class FreeBusyQueryTool extends MCPTool<typeof FreeBusyQuerySchem
         }
       }
 
-      let summary = `**Free/Busy Query Results**\n`;
-      summary += `Time Range: ${results.timeMin} to ${results.timeMax}\n\n`;
-
-      for (const cal of results.calendars) {
-        summary += `📅 **${cal.calendarId}**\n`;
-        if (cal.busy && cal.busy.length > 0) {
-          summary += `   🔴 Busy periods:\n`;
-          for (const busy of cal.busy) {
-            summary += `      - ${busy.start} to ${busy.end}\n`;
-          }
-        } else {
-          summary += `   ✅ Available during entire time range\n`;
-        }
-        if (cal.errors && cal.errors.length > 0) {
-          summary += `   ⚠️ Errors: ${cal.errors.map((e: any) => e.reason).join(', ')}\n`;
-        }
-        summary += `\n`;
-      }
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        timeMin: response.data.timeMin,
+        timeMax: response.data.timeMax,
+        calendars,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

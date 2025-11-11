@@ -33,26 +33,28 @@ export default class ListCalendarsTool extends MCPTool<typeof ListCalendarsSchem
 
       logger.info(`Successfully retrieved ${response.data.items?.length || 0} calendars`);
 
-      const calendars = response.data.items || [];
-      const summary =
-        `Found ${calendars.length} calendars:\n\n` +
-        calendars
-          .map(
-            (cal) =>
-              `📅 **${cal.summary}**\n` +
-              `   ID: ${cal.id}\n` +
-              `   Access: ${cal.accessRole}\n` +
-              `   TimeZone: ${cal.timeZone || 'Not specified'}\n` +
-              (cal.description ? `   Description: ${cal.description}\n` : '') +
-              `   Primary: ${cal.primary ? 'Yes' : 'No'}\n`
-          )
-          .join('\n');
+      const calendars = (response.data.items || []).map((cal) => ({
+        calendarId: cal.id,
+        summary: cal.summary,
+        description: cal.description || undefined,
+        timeZone: cal.timeZone || undefined,
+        accessRole: cal.accessRole,
+        primary: cal.primary || false,
+      }));
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendars,
+        count: calendars.length,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

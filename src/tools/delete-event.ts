@@ -37,17 +37,20 @@ export default class DeleteEventTool extends MCPTool<typeof DeleteEventSchema> {
 
       logger.info(`Successfully deleted event: ${input.eventId} from calendar ${input.calendarId}`);
 
-      const summary =
-        `✅ **Event Deleted Successfully!**\n\n` +
-        `Event ID: ${input.eventId}\n` +
-        `Calendar: ${input.calendarId}\n` +
-        `Deleted: ${new Date().toISOString()}\n`;
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        eventId: input.eventId,
+        calendarId: input.calendarId,
+        deleted: true,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

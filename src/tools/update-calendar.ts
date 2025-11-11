@@ -54,20 +54,23 @@ export default class UpdateCalendarTool extends MCPTool<typeof UpdateCalendarSch
       logger.info(`Successfully updated calendar: ${response.data.summary} (${response.data.id})`);
 
       const cal = response.data;
-      const summary =
-        `✅ **Calendar Updated Successfully!**\n\n` +
-        `**${cal.summary}**\n` +
-        `- ID: ${cal.id}\n` +
-        `- Description: ${cal.description || 'No description'}\n` +
-        `- TimeZone: ${cal.timeZone || 'Not specified'}\n` +
-        `- Location: ${cal.location || 'Not specified'}\n` +
-        `- Updated: ${new Date().toISOString()}\n`;
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendarId: cal.id,
+        summary: cal.summary,
+        description: cal.description || undefined,
+        timeZone: cal.timeZone || undefined,
+        location: cal.location || undefined,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

@@ -47,22 +47,26 @@ export default class CreateCalendarTool extends MCPTool<typeof CreateCalendarSch
         requestBody: calendarData,
       });
 
-      logger.info(`Successfully created calendar: ${response.data.summary} (${response.data.id})`);
-
       const cal = response.data;
-      const summary =
-        `✅ **Calendar Created Successfully!**\n\n` +
-        `**${cal.summary}**\n` +
-        `- ID: ${cal.id}\n` +
-        `- Description: ${cal.description || 'No description'}\n` +
-        `- TimeZone: ${cal.timeZone || 'Default timezone'}\n` +
-        `- Created: ${new Date().toISOString()}\n`;
+
+      logger.info(`Successfully created calendar: ${cal.summary} (${cal.id})`);
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendarId: cal.id,
+        summary: cal.summary,
+        description: cal.description || undefined,
+        timeZone: cal.timeZone || undefined,
+        location: cal.location || undefined,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

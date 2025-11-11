@@ -38,24 +38,27 @@ export default class GetEventTool extends MCPTool<typeof GetEventSchema> {
       logger.info(`Successfully retrieved event: ${response.data.summary} (${response.data.id})`);
 
       const event = response.data;
-      const startTime = event.start?.dateTime || event.start?.date || 'No start time';
-      const endTime = event.end?.dateTime || event.end?.date || 'No end time';
-      const summary =
-        `🗺 **${event.summary || 'Untitled Event'}**\n\n` +
-        `**Event Details:**\n` +
-        `- ID: ${event.id}\n` +
-        `- Time: ${startTime} - ${endTime}\n` +
-        (event.location ? `- Location: ${event.location}\n` : '') +
-        (event.description ? `- Description: ${event.description}\n` : '') +
-        `- Status: ${event.status || 'confirmed'}\n` +
-        `- Created: ${event.created || 'Unknown'}\n` +
-        `- Updated: ${event.updated || 'Unknown'}\n`;
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        eventId: event.id,
+        summary: event.summary,
+        description: event.description || undefined,
+        location: event.location || undefined,
+        start: event.start,
+        end: event.end,
+        status: event.status,
+        created: event.created,
+        updated: event.updated,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

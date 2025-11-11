@@ -29,20 +29,24 @@ export default class GetCalendarTool extends MCPTool<typeof GetCalendarSchema> {
       logger.info(`Successfully retrieved calendar: ${response.data.summary}`);
 
       const cal = response.data;
-      const summary =
-        `📅 **${cal.summary}**\n\n` +
-        `**Details:**\n` +
-        `- ID: ${cal.id}\n` +
-        `- Description: ${cal.description || 'No description'}\n` +
-        `- TimeZone: ${cal.timeZone || 'Not specified'}\n` +
-        `- Location: ${cal.location || 'Not specified'}\n` +
-        `- Created: ${cal.etag ? new Date(parseInt(cal.etag.replace(/"/g, '')) / 1000).toISOString() : 'Unknown'}\n`;
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendarId: cal.id,
+        summary: cal.summary,
+        description: cal.description || undefined,
+        timeZone: cal.timeZone || undefined,
+        location: cal.location || undefined,
+        etag: cal.etag || undefined,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

@@ -56,26 +56,29 @@ export default class CreateEventTool extends MCPTool<typeof CreateEventSchema> {
 
       const response = await calendar.events.insert(apiParams);
 
-      logger.info(`Successfully created event: ${response.data.summary} (${response.data.id})`);
-
       const event = response.data;
-      const startTime = event.start?.dateTime || event.start?.date || 'No start time';
-      const endTime = event.end?.dateTime || event.end?.date || 'No end time';
-      const summary =
-        `✅ **Event Created Successfully!**\n\n` +
-        `**${event.summary || 'Untitled Event'}**\n` +
-        `- ID: ${event.id}\n` +
-        `- Time: ${startTime} - ${endTime}\n` +
-        (event.location ? `- Location: ${event.location}\n` : '') +
-        (event.description ? `- Description: ${event.description}\n` : '') +
-        `- Status: ${event.status || 'confirmed'}\n` +
-        `- Calendar: ${input.calendarId}\n`;
+
+      logger.info(`Successfully created event: ${event.summary} (${event.id})`);
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        eventId: event.id,
+        summary: event.summary,
+        description: event.description || undefined,
+        location: event.location || undefined,
+        start: event.start,
+        end: event.end,
+        status: event.status,
+        calendarId: input.calendarId,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

@@ -53,30 +53,22 @@ export default class GrantCalendarAccessTool extends MCPTool<typeof GrantCalenda
         scope: input.scopeType,
       });
 
-      const scopeText =
-        response.data.scope?.type === 'default'
-          ? 'Default (Public)'
-          : response.data.scope?.type === 'user'
-            ? `User: ${response.data.scope.value}`
-            : response.data.scope?.type === 'group'
-              ? `Group: ${response.data.scope.value}`
-              : response.data.scope?.type === 'domain'
-                ? `Domain: ${response.data.scope.value}`
-                : 'Unknown scope';
-
-      const summary =
-        `✅ **Calendar Sharing Permission Created!**\n\n` +
-        `**${scopeText}**\n` +
-        `- Role: ${response.data.role}\n` +
-        `- Calendar: ${input.calendarId}\n` +
-        `- Rule ID: ${response.data.id}\n` +
-        `- Created: ${new Date().toISOString()}\n`;
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        ruleId: response.data.id,
+        role: response.data.role,
+        scopeType: response.data.scope?.type,
+        scopeValue: response.data.scope?.value,
+        calendarId: input.calendarId,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

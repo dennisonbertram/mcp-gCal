@@ -37,17 +37,20 @@ export default class RevokeCalendarAccessTool extends MCPTool<typeof RevokeCalen
 
       logger.info(`Successfully deleted ACL rule ${input.ruleId} from calendar ${input.calendarId}`);
 
-      const summary =
-        `✅ **Calendar Sharing Permission Removed!**\n\n` +
-        `Rule ID: ${input.ruleId}\n` +
-        `Calendar: ${input.calendarId}\n` +
-        `Deleted: ${new Date().toISOString()}\n`;
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        ruleId: input.ruleId,
+        calendarId: input.calendarId,
+        deleted: true,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

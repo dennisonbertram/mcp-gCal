@@ -41,22 +41,27 @@ export default class QuickAddEventTool extends MCPTool<typeof QuickAddEventSchem
       logger.info(`Successfully created event via quickAdd: ${response.data.summary} (${response.data.id})`);
 
       const event = response.data;
-      const summary =
-        `✅ **Event Created from Natural Language!**\n\n` +
-        `**${event.summary || 'Quick Event'}**\n` +
-        `- Original text: "${input.text}"\n` +
-        `- ID: ${event.id}\n` +
-        `- Time: ${event.start?.dateTime || event.start?.date} - ${event.end?.dateTime || event.end?.date}\n` +
-        (event.location ? `- Location: ${event.location}\n` : '') +
-        (event.description ? `- Description: ${event.description}\n` : '') +
-        `- Calendar: ${input.calendarId}\n` +
-        (timezone ? `- Detected timezone: ${timezone}\n` : '');
 
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        eventId: event.id,
+        summary: event.summary,
+        description: event.description || undefined,
+        location: event.location || undefined,
+        start: event.start,
+        end: event.end,
+        calendarId: input.calendarId,
+        originalText: input.text,
+        detectedTimeZone: timezone || undefined,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }

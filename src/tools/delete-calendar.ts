@@ -28,16 +28,19 @@ export default class DeleteCalendarTool extends MCPTool<typeof DeleteCalendarSch
 
       logger.info(`Successfully deleted calendar: ${input.calendarId}`);
 
-      const summary =
-        `✅ **Calendar Deleted Successfully!**\n\n` +
-        `Calendar ID: ${input.calendarId}\n` +
-        `Deleted: ${new Date().toISOString()}\n`;
-
       return {
-        content: [{ type: 'text', text: summary }],
+        success: true,
+        calendarId: input.calendarId,
+        deleted: true,
       };
     } catch (error) {
-      throw handleCalendarError(error);
+      const calendarError = handleCalendarError(error);
+      return {
+        success: false,
+        error: calendarError.message,
+        errorType: calendarError.name,
+        errorCode: calendarError.code,
+      };
     }
   }
 }
