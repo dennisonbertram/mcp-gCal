@@ -5,6 +5,83 @@ Comprehensive Google Calendar integration for Model Context Protocol (MCP) with 
 
 ## Implementation Progress
 
+### Tool Return Format Fix - mcp-framework v0.2.15 Compatibility (2025-11-11)
+**CRITICAL**: Fixed Zod validation errors by changing tool return format
+
+#### Problem Discovered
+- Tools returning MCP content format `{ content: [{ type: 'text', text: '...' }] }` caused Zod validation errors
+- Error: `invalid_union`, `invalid_literal`, `expected: "text"` in Claude Code
+- Tools throwing errors in catch blocks also caused issues
+- Issue specific to mcp-framework v0.2.15's response wrapping
+
+#### Root Cause
+mcp-framework v0.2.15 has issues properly wrapping/transforming MCP content format responses, leading to Zod validation failures in the MCP SDK. The framework appears to double-wrap or incorrectly transform the content structure.
+
+#### Solution Implemented
+Adopted the pattern used by mcp-gmail: **return plain JavaScript objects** with structured data instead of MCP content format.
+
+**Changes Made**:
+1. **Updated all 17 tools** to return plain objects:
+   - create-calendar, create-event, delete-calendar, delete-event
+   - find-available-time, freebusy-query, get-calendar, get-event
+   - grant-calendar-access, list-calendar-access, list-calendars, list-events
+   - quick-add-event, revoke-calendar-access, update-calendar-access
+   - update-calendar, update-event
+
+2. **Return Format Change**:
+   ```typescript
+   // Before (❌ WRONG - Causes Zod errors)
+   return { content: [{ type: 'text', text: summary }] };
+   } catch (error) { throw handleCalendarError(error); }
+
+   // After (✅ CORRECT - Works with mcp-framework v0.2.15)
+   return { success: true, count: events.length, events: summary };
+   } catch (error) {
+     const calendarError = handleCalendarError(error);
+     return { success: false, error: calendarError.message, errorType, errorCode };
+   }
+   ```
+
+3. **Error Handling Change**:
+   - No longer throw errors from tools
+   - Catch and return error objects with `success: false`
+   - Include structured error info: message, type, code
+
+4. **Structured Data Returns**:
+   - Success responses include relevant structured fields
+   - List operations include `count` and array of items
+   - Create operations include resource IDs and created fields
+   - Delete operations include `deleted: true`
+   - Update operations include updated resource fields
+
+#### Additional Fixes Applied
+1. **JSON Schema 2020-12 Compliance**:
+   - Replaced Zod `.positive()` with `.min(1)` in 5 schema files
+   - Fixed old-style `"exclusiveMinimum": true` → `"minimum": 1`
+
+2. **Bundle SDK Warning Fix**:
+   - Patched SDK version detection in bundle to eliminate warnings
+   - Bundle now shows `SDK: 1.21.1` instead of `SDK: unknown`
+   - Suppressed "Failed to read SDK package.json" warnings
+
+#### Testing Results
+- ✅ All 17 tools updated successfully
+- ✅ Build completed without errors
+- ✅ Bundle rebuilt and deployed (13.51 MB)
+- ✅ No more Zod validation errors in Claude Code
+- ✅ Tools return structured data that LLMs can parse
+
+#### Documentation Created
+Created comprehensive guide: `docs/MCP_FRAMEWORK_TOOL_RETURN_FORMAT.md`
+- Explains the problem and root cause
+- Provides wrong vs correct patterns with code examples
+- Includes step-by-step migration guide
+- Contains verification checklist
+- Applicable to all MCP servers using mcp-framework v0.2.15
+
+#### Alignment Note
+**CRITICAL FOR OTHER MCP SERVERS**: This pattern should be adopted by all MCP servers using mcp-framework v0.2.15 (mcp-gDrive, mcp-gmail, etc.) to avoid Zod validation errors. The plain object return pattern is simpler, cleaner, and more maintainable than MCP content format.
+
 ### Auth Refactoring - Gmail-MCP Pattern Adoption (2025-11-11)
 **BREAKING CHANGE**: Refactored authentication to match mcp-gmail pattern
 
