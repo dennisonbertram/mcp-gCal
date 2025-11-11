@@ -6,19 +6,16 @@ import { Credentials } from 'google-auth-library';
 
 export class TokenStorage {
   private storageDir: string;
-  private encryptionKey?: Buffer;
-  private tenantId?: string;
-  
-  constructor(storageDir: string, tenantId?: string, enableEncryption: boolean = true) {
+  private encryptionKey?: Buffer | undefined;
+
+  constructor(storageDir: string, _tenantId?: string, enableEncryption: boolean = true) {
     // Expand tilde to home directory and use gcal-specific directory
-    this.storageDir = storageDir.startsWith('~') 
+    this.storageDir = storageDir.startsWith('~')
       ? path.join(os.homedir(), storageDir.slice(1))
       : storageDir;
-      
-    this.tenantId = tenantId;
-    
+
     if (enableEncryption) {
-      this.encryptionKey = this.deriveTenantKey(tenantId);
+      this.encryptionKey = this.deriveTenantKey(_tenantId);
     }
   }
   
@@ -88,42 +85,41 @@ export class TokenStorage {
       // Directory already exists
     }
   }
-  
-  private deriveKey(): Buffer {
-    // Use machine-specific information to derive encryption key (legacy single-tenant)
-    const machineId = process.env.USER || process.env.USERNAME || 'default';
-    const salt = 'gcal-mcp-salt';
-    return crypto.scryptSync(machineId, salt, 32);
-  }
-  
-  private deriveTenantKey(tenantId?: string): Buffer {
+
+  private deriveTenantKey(_tenantId?: string): Buffer {
     // Combine machine ID with tenant ID for unique encryption per tenant
     const machineId = process.env.USER || process.env.USERNAME || 'default';
-    const salt = `gcal-mcp-${tenantId || 'single'}-salt`;
-    const keyMaterial = `${machineId}-${tenantId || 'default'}`;
+    const salt = `gcal-mcp-${_tenantId || 'single'}-salt`;
+    const keyMaterial = `${machineId}-${_tenantId || 'default'}`;
     return crypto.scryptSync(keyMaterial, salt, 32);
   }
-  
+
   private encrypt(text: string): string {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', this.encryptionKey!, iv);
-    
+
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     return iv.toString('hex') + ':' + encrypted;
   }
-  
+
   private decrypt(text: string): string {
     const parts = text.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
+    const ivStr = parts[0];
     const encrypted = parts[1];
-    
+
+    if (!ivStr || !encrypted) {
+      throw new Error('Invalid encrypted data format');
+    }
+
+    const iv = Buffer.from(ivStr, 'hex');
+
     const decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey!, iv);
-    
+
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   }
 }

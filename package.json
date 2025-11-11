@@ -28,22 +28,26 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mcp-build",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "auth": "npm run build && node dist/index.js auth",
-    "test": "vitest",
+    "test": "vitest && mcp validate",
     "test:coverage": "vitest --coverage",
+    "validate": "mcp validate",
+    "prepack": "npm run build && mcp validate",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "clear-auth": "rm -rf ~/.gcal-mcp && echo 'Google Calendar authentication cleared'"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.20.2",
     "chrono-node": "^2.8.4",
     "google-auth-library": "^9.15.0",
-    "googleapis": "^144.0.0",
-    "winston": "^3.15.0"
+    "googleapis": "^164.1.0",
+    "mcp-framework": "0.2.15",
+    "winston": "^3.15.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

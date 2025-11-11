@@ -13,7 +13,6 @@ import * as os from 'os';
 import * as http from 'http';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import * as readline from 'readline';
 
 const execAsync = promisify(exec);
 
@@ -154,7 +153,7 @@ class AuthenticationCLI {
         
         // Test if credentials are still valid
         try {
-          const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+          const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client as any });
           await calendar.calendarList.list({ maxResults: 1 });
           return credentials;
         } catch (error) {
@@ -207,21 +206,6 @@ class AuthenticationCLI {
     
     // Verify authentication
     await this.verifyAuthentication();
-  }
-
-  private async getAuthorizationCodeFromUser(): Promise<string> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    return new Promise((resolve) => {
-      console.log('After granting access, Google will show you an authorization code.');
-      rl.question('Please enter the authorization code: ', (code) => {
-        rl.close();
-        resolve(code.trim());
-      });
-    });
   }
 
   private async startCallbackServer(): Promise<void> {
@@ -321,7 +305,7 @@ class AuthenticationCLI {
       throw new Error('OAuth2 client not initialized');
     }
     
-    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client as any });
     const response = await calendar.calendarList.list({ maxResults: 5 });
     
     const calendars = response.data.items || [];

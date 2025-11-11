@@ -87,37 +87,44 @@ export function parseNaturalDateRange(
     }
     
     // Check if we have explicit start and end
-    if (results.length >= 2) {
+    if (results.length >= 2 && results[0]?.start && results[1]?.start) {
       const start = results[0].start.date();
       const end = results[1].start.date();
-      
+
       return {
         start: formatDateTimeForCalendar(start, timezone),
         end: formatDateTimeForCalendar(end, timezone)
       };
     }
-    
+
     // Single result with end component (e.g., "from 2pm to 4pm")
-    if (results[0].end) {
+    if (results[0]?.end && results[0]?.start) {
       const start = results[0].start.date();
       const end = results[0].end.date();
-      
+
       return {
         start: formatDateTimeForCalendar(start, timezone),
         end: formatDateTimeForCalendar(end, timezone)
       };
     }
-    
+
     // Single date/time with duration hints
+    if (!results[0]?.start) {
+      return { start: null, end: null };
+    }
+
     const start = results[0].start.date();
     let end = new Date(start);
-    
+
     // Check for duration hints in the input
-    if (/\b(\d+)\s*hour/i.test(input)) {
-      const hours = parseInt(input.match(/\b(\d+)\s*hour/i)![1]);
+    const hourMatch = input.match(/\b(\d+)\s*hour/i);
+    const minMatch = input.match(/\b(\d+)\s*min/i);
+
+    if (hourMatch?.[1]) {
+      const hours = parseInt(hourMatch[1]);
       end = new Date(start.getTime() + hours * 60 * 60 * 1000);
-    } else if (/\b(\d+)\s*min/i.test(input)) {
-      const minutes = parseInt(input.match(/\b(\d+)\s*min/i)![1]);
+    } else if (minMatch?.[1]) {
+      const minutes = parseInt(minMatch[1]);
       end = new Date(start.getTime() + minutes * 60 * 1000);
     } else if (/all day/i.test(input)) {
       // All-day event
@@ -174,10 +181,11 @@ function formatDateOnly(date: Date): string {
 export function parseCalendarIds(input: string): string[] {
   // Split by comma or semicolon, trim whitespace
   const ids = input.split(/[,;]/).map(id => id.trim()).filter(id => id.length > 0);
-  
+
   // If no delimiters found, check for space-separated emails
-  if (ids.length === 1 && ids[0].includes(' ')) {
-    const spaceIds = ids[0].split(/\s+/).filter(id => id.includes('@') || id === 'primary');
+  if (ids.length === 1 && ids[0] && ids[0].includes(' ')) {
+    const firstId = ids[0];
+    const spaceIds = firstId.split(/\s+/).filter(id => id.includes('@') || id === 'primary');
     if (spaceIds.length > 0) {
       return spaceIds;
     }
