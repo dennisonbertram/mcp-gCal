@@ -5,6 +5,57 @@ Comprehensive Google Calendar integration for Model Context Protocol (MCP) with 
 
 ## Implementation Progress
 
+### Auth Refactoring - Gmail-MCP Pattern Adoption (2025-11-11)
+**BREAKING CHANGE**: Refactored authentication to match mcp-gmail pattern
+
+#### Changes Made
+1. **New Authentication Files**:
+   - `src/auth/local-auth-helper.ts` - Custom OAuth2 helper with enhanced logging and error handling
+   - `src/auth/index.ts` - Main auth module exports
+   - `src/cli/authenticate.ts` - Standalone authentication CLI script
+
+2. **Removed Files**:
+   - `src/auth-cli.ts` - Replaced by new CLI structure
+   - `src/auth/TokenStorage.ts` - No longer needed with new auth pattern
+
+3. **Path Consolidation**:
+   - All auth files now in `~/.config/mcp-gcal/` (credentials.json, token.json)
+   - Consistent with XDG base directory convention
+   - Token format: "authorized_user" with refresh_token only
+
+4. **Random Port Selection**:
+   - Uses ports 50000-60000 (randomly selected) to prevent conflicts
+   - Automatic retry with new port on EADDRINUSE error
+   - More robust than fixed port 3000
+
+5. **Enhanced Error Handling**:
+   - Better logging throughout auth flow
+   - HTML success/error pages in browser
+   - Timeout handling (5 minutes)
+   - Port conflict detection and helpful error messages
+
+6. **Authentication Command**:
+   - Run: `npm run auth` for local development
+   - Run: `gcalendar-mcp auth` for global installation
+   - Run: `npx @modelcontextprotocol/gcalendar-mcp auth` for npx usage
+
+7. **Bundle Feature**:
+   - Added `npm run build:bundle` command
+   - Creates single-file bundle at `dist/gcalendar-mcp.bundle.cjs` (~14MB)
+   - Self-contained with all dependencies
+   - Includes all 17 tools
+   - Useful for simplified deployment and distribution
+
+#### Testing Results
+- ✅ Authentication flow working with random ports
+- ✅ Token storage in ~/.config/mcp-gcal/token.json
+- ✅ Token refresh working correctly
+- ✅ All 17 tools functional after refactoring
+- ✅ Bundle build successful (14MB)
+
+#### Alignment
+This pattern matches mcp-gmail and mcp-framework authentication best practices, ensuring consistency across Model Context Protocol servers.
+
 ### Authentication Migration (2025-09-02)
 **CRITICAL**: OAuth2 Out-of-Band (OOB) Flow Deprecation
 

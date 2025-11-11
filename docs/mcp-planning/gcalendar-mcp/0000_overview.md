@@ -1,5 +1,15 @@
 # Google Calendar MCP Server Overview
 
+> **IMPLEMENTATION STATUS** (Updated 2025-11-11): This document describes the full planned architecture. The current implementation includes:
+> - ✅ OAuth2 authentication (mcp-gmail pattern)
+> - ✅ 17 calendar tools (basic + advanced features)
+> - ✅ Natural language date parsing
+> - ✅ Free/busy scheduling
+> - ✅ Calendar ACL management
+> - ✅ Bundle distribution (~14MB single file)
+> - 🚧 Service account auth (planned, not implemented)
+> - 🚧 Resources and prompts (planned, not implemented)
+
 ## Purpose
 A comprehensive Model Context Protocol (MCP) server that provides LLMs with secure, production-ready access to Google Calendar functionality. This server enables AI assistants to manage calendars, schedule events, handle recurring appointments, check availability, and coordinate meetings through a well-structured set of tools, resources, and prompts.
 
@@ -114,38 +124,32 @@ This MCP server will provide comprehensive coverage of:
 
 ### Environment Configuration
 ```bash
-# OAuth2 Configuration (User Authentication)
-GCAL_CLIENT_ID=your_oauth_client_id
-GCAL_CLIENT_SECRET=your_oauth_client_secret
-GCAL_REDIRECT_URI=http://localhost:3000/oauth2callback
-GCAL_TOKEN_PATH=~/.config/gcal-mcp/tokens.json
+# CURRENT IMPLEMENTATION (2025-11-11)
+# OAuth2 credentials are provided via credentials.json file
+# Token storage: ~/.config/mcp-gcal/token.json (fixed)
+# Credentials: ~/.config/mcp-gcal/credentials.json or project root
 
-# Service Account Configuration (Alternative)
-GCAL_SERVICE_ACCOUNT_KEY=/path/to/service-account-key.json
-GCAL_IMPERSONATE_EMAIL=user@example.com
-
-# API Configuration
-GCAL_API_KEY=optional_api_key_for_public_calendars
-GCAL_DEFAULT_CALENDAR=primary
-GCAL_DEFAULT_TIMEZONE=America/New_York
-
-# Natural Language Processing
-GCAL_ENABLE_NLP=true
-GCAL_DATE_PARSER=chrono-node
-
-# Rate Limiting
-GCAL_RATE_LIMIT_RETRY=true
-GCAL_MAX_RETRIES=3
-GCAL_RETRY_DELAY_MS=1000
-
-# Caching
-GCAL_CACHE_ENABLED=true
-GCAL_CACHE_TTL_SECONDS=300
-GCAL_CACHE_MAX_SIZE=100
+# OAuth2 via Environment Variables (optional)
+GOOGLE_CLIENT_ID=your_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_oauth_client_secret
 
 # Logging
-GCAL_LOG_LEVEL=info
-GCAL_LOG_FILE=/var/log/gcal-mcp.log
+GCAL_LOG_LEVEL=info  # debug, info, warn, error
+
+# PLANNED FEATURES (not yet implemented):
+# Service Account Configuration
+# GCAL_SERVICE_ACCOUNT_KEY=/path/to/service-account-key.json
+# GCAL_IMPERSONATE_EMAIL=user@example.com
+
+# API Configuration
+# GCAL_API_KEY=optional_api_key_for_public_calendars
+# GCAL_DEFAULT_CALENDAR=primary
+# GCAL_DEFAULT_TIMEZONE=America/New_York
+
+# Caching
+# GCAL_CACHE_ENABLED=true
+# GCAL_CACHE_TTL_SECONDS=300
+# GCAL_CACHE_MAX_SIZE=100
 
 # Webhooks (Optional)
 GCAL_WEBHOOK_URL=https://your-domain.com/webhooks/calendar

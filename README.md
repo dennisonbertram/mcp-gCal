@@ -81,12 +81,17 @@ npx @modelcontextprotocol/gcalendar-mcp auth
 
 # For global installation
 gcalendar-mcp auth
+
+# For local development
+npm run auth
 ```
 
 This will:
 1. Open your browser for Google account authentication
 2. Request calendar permissions
-3. Store the access token securely in `~/.config/mcp-gcal/`
+3. Store the OAuth2 refresh token securely in `~/.config/mcp-gcal/token.json`
+
+The authentication flow uses a random local port (50000-60000) to prevent conflicts with other services. If you see a port conflict error, simply retry - a new random port will be used.
 
 **Note:** Authentication is required before first use. The browser will open automatically for Google account login.
 
@@ -133,15 +138,48 @@ Once installed, you can use natural language commands with Claude:
 
 ### Token Management
 
-OAuth2 tokens are stored securely and automatically refreshed. To reset authentication:
+OAuth2 tokens are stored securely in `~/.config/mcp-gcal/token.json` and automatically refreshed. The token format follows the "authorized_user" pattern with refresh_token for long-term access.
+
+To reset authentication:
 
 ```bash
 # Clear stored tokens
-rm -rf ~/.config/mcp-gcal
+rm -rf ~/.config/mcp-gcal/token.json
 
 # Re-authenticate
 gcalendar-mcp auth
 ```
+
+Or use the convenience script:
+
+```bash
+npm run clear-auth  # Clears token.json only
+```
+
+### Single-File Bundle Distribution
+
+For deployment scenarios where you want a single self-contained file without node_modules dependencies, use the bundled version:
+
+```bash
+# Build the bundle
+npm run build:bundle
+
+# The bundle is created at dist/gcalendar-mcp.bundle.cjs (~14MB)
+# It includes all dependencies and can be distributed standalone
+```
+
+The bundle includes all 17 tools and can be used directly:
+
+```bash
+# Run the bundle
+node dist/gcalendar-mcp.bundle.cjs
+```
+
+This is useful for:
+- Simplified deployment
+- Containerized environments
+- Situations where you want to avoid npm install
+- Distribution to systems without package manager access
 
 ## Troubleshooting
 
@@ -150,7 +188,12 @@ gcalendar-mcp auth
 If you encounter authentication errors:
 1. Ensure your OAuth2 credentials are for a "Desktop application"
 2. Verify the Google Calendar API is enabled in your project
-3. Clear tokens and re-authenticate: `rm -rf ~/.config/mcp-gcal && gcalendar-mcp auth`
+3. Check that `credentials.json` exists in `~/.config/mcp-gcal/` or the project root
+4. Add the redirect URI to your OAuth2 credentials in Google Cloud Console:
+   - The authentication uses random ports (50000-60000) for the callback
+   - Add `http://localhost:50000/oauth2callback` through `http://localhost:60000/oauth2callback` as authorized redirect URIs
+   - Or simply add the specific redirect URI shown in the authentication URL when it opens
+5. Clear tokens and re-authenticate: `rm -rf ~/.config/mcp-gcal/token.json && gcalendar-mcp auth`
 
 ### Permission Errors
 
@@ -168,10 +211,12 @@ For connection problems:
 
 ## Security
 
-- OAuth2 tokens are stored locally in `~/.config/mcp-gcal/` with restricted permissions
+- OAuth2 tokens are stored locally in `~/.config/mcp-gcal/token.json` with restricted permissions
+- Token format uses "authorized_user" credential type with refresh_token for secure long-term access
 - Credentials are never transmitted except to Google's OAuth2 servers
 - All calendar operations use Google's secure API endpoints
 - Token refresh is handled automatically and securely
+- Authentication flow uses random local ports to prevent conflicts and reduce predictability
 
 ## Development
 

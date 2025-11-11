@@ -1,7 +1,16 @@
 # Server Setup & Authentication Implementation
 
 ## Overview
-This task establishes the foundation of the Google Calendar MCP server, implementing multi-method authentication (OAuth2, Service Accounts), token management, server initialization, and core infrastructure including logging, error handling, and rate limiting.
+This task establishes the foundation of the Google Calendar MCP server, implementing OAuth2 authentication with token management, server initialization, and core infrastructure including logging, error handling, and rate limiting.
+
+**IMPLEMENTATION STATUS**: ✅ COMPLETE (Updated 2025-11-11)
+
+**Current Implementation**: The server uses OAuth2 authentication following the mcp-gmail pattern with:
+- Custom local auth helper with random port selection (50000-60000)
+- Token storage in `~/.config/mcp-gcal/token.json` using "authorized_user" format
+- Enhanced error handling and browser-based feedback
+- Standalone CLI authentication script (`npm run auth`)
+- Bundle distribution support for simplified deployment
 
 ## Dependencies
 - No dependencies on other task documents
@@ -479,35 +488,32 @@ async function withRetry<T>(
 
 ### Required Variables
 ```bash
-# At least one authentication method must be configured
+# OAuth2 credentials can be provided via:
+# 1. credentials.json file in ~/.config/mcp-gcal/ (recommended)
+# 2. credentials.json file in project root
+# 3. Environment variables (below)
 
-# OAuth2 (Option 1)
-GCAL_CLIENT_ID=your_client_id.apps.googleusercontent.com
-GCAL_CLIENT_SECRET=your_client_secret
-GCAL_REDIRECT_URI=http://localhost:3000/oauth2callback
-
-# Service Account (Option 2)
-GCAL_SERVICE_ACCOUNT_KEY=/path/to/service-account-key.json
-GCAL_IMPERSONATE_EMAIL=user@example.com  # Optional
-
-# API Key (Option 3 - Limited)
-GCAL_API_KEY=your_api_key
+# OAuth2 via Environment Variables (optional)
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
 ```
 
 ### Optional Variables
 ```bash
-# Token Storage
-GCAL_TOKEN_PATH=~/.config/gcal-mcp/tokens  # Default
-
 # Logging
 GCAL_LOG_LEVEL=info  # debug, info, warn, error
-GCAL_LOG_FILE=/var/log/gcal-mcp.log
 
-# Rate Limiting
-GCAL_RATE_LIMIT_RETRY=true
-GCAL_MAX_RETRIES=3
-GCAL_RETRY_DELAY_MS=1000
+# Paths (usually auto-configured)
+# Token storage: ~/.config/mcp-gcal/token.json
+# Credentials: ~/.config/mcp-gcal/credentials.json
 ```
+
+### Current Implementation Notes
+- **Token Path**: Fixed at `~/.config/mcp-gcal/token.json`
+- **Credentials Path**: `~/.config/mcp-gcal/credentials.json` or project root `credentials.json`
+- **Redirect URI**: Random port between 50000-60000 (`http://localhost:<port>/oauth2callback`)
+- **Token Format**: "authorized_user" with refresh_token only
+- **Authentication**: Run `npm run auth` before first use
 
 ## Security Considerations
 
