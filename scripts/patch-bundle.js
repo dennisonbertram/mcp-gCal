@@ -24,6 +24,14 @@ const frameworkPkg = JSON.parse(
   )
 );
 
+// Read SDK package.json for version
+const sdkPkg = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, '..', 'node_modules', '@modelcontextprotocol', 'sdk', 'package.json'),
+    'utf8'
+  )
+);
+
 // Create replacement code with inline JSON
 const replacementCode = `{name:"${frameworkPkg.name}",version:"${frameworkPkg.version}"}`;
 
@@ -35,10 +43,23 @@ bundleContent = bundleContent.replace(
   replacementCode
 );
 
+console.log('✅ Patched framework package.json require');
+
+// Patch SDK version detection
+// The framework tries to resolve SDK package.json and returns "unknown" on error
+// Pattern: Failed to read SDK package.json: ${g.message}`),"unknown"}
+// Also suppress the warning since the version is hardcoded
+bundleContent = bundleContent.replace(
+  /\$o\.warn\(`Failed to read SDK package\.json: \$\{g\.message\}`\),"unknown"\}/g,
+  `$o.debug(\`SDK version hardcoded in bundle: ${sdkPkg.version}\`),\"${sdkPkg.version}\"}`
+);
+
+console.log('✅ Patched SDK version detection');
+
 // Write the patched bundle back
 fs.writeFileSync(inputFile, bundleContent);
 
-console.log('✅ Patched framework package.json require');
+console.log('✅ All patches applied');
 
 // Make the file executable
 fs.chmodSync(inputFile, 0o755);
